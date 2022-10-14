@@ -1,0 +1,9 @@
+App(
+    appid="circle",
+    name="Circle",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="circle_app",
+    requires=["gui"],
+    stack_size=1 * 1024,
+    order=30,
+)
