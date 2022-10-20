@@ -13,23 +13,16 @@
 //After three pomodoros are done, take the fourth pomodoro and then take a long break (typically 20 to 30 minutes). Once the long break is finished, return to step 2.
 //https://en.wikipedia.org/wiki/Pomodoro_Technique
 
-//TODO check memory
-//TODO make pair?
-typedef enum {
-    Work,
-    ShortBreak,
-    LongBreak,
-} State;
 
+//TODO check memory
+//uint8_t x;
 typedef struct {
     int count;
-    //TODO long
     int *endTime;
     int workTime;
     int shortBreakTime;
     int longBreakTime;
     int repetitions;
-    State state;
     bool running;
     bool notification;
 } Pomodoro;
@@ -57,12 +50,6 @@ const NotificationSequence time_up = {
     //&message_display_backlight_on,
     NULL,
 };
-
-// Screen is 128x64 px
-const int MAX_X = 128;
-const int MAX_Y = 64;
-const int BORDER = 2;
-const int MENU_BEGIN_Y = MAX_Y - 10;
 
 void draw_callback(Canvas* const canvas, void* ctx) {
     const Pomodoro* pomodoro = acquire_mutex((ValueMutex*)ctx, 25);
@@ -145,10 +132,11 @@ static void pomodoro_stop_notification(Pomodoro *pomodoro){
 }
 
 static void pomodoro_init(Pomodoro* const pomodoro) {
+    //TODO change to minutes
     pomodoro->count = 0;
-    pomodoro->workTime = 5;
-    pomodoro->shortBreakTime = 20;
-    pomodoro->longBreakTime = 20;
+    pomodoro->workTime = 1500;
+    pomodoro->shortBreakTime = 300;
+    pomodoro->longBreakTime = 1800;
     pomodoro->endTime= &pomodoro->workTime;
     pomodoro->repetitions = 0;
     pomodoro->running = false;
@@ -172,19 +160,14 @@ int32_t pomodoro_app(void* p) {
     view_port_input_callback_set(view_port, input_callback, event_queue);
 
     FuriTimer* timer = furi_timer_alloc(pomodoro_update_timer_callback, FuriTimerTypePeriodic, event_queue);
-    //TODO changes the frequency of all, use two timer?
-    //furi_timer_start(timer, furi_kernel_get_tick_frequency() / 4);
     furi_timer_start(timer, furi_ms_to_ticks(1000));
-    //furi_timer_start(timer, furi_ms_to_ticks(60000));
-    //FuriStatus furi_delay_until_tick(uint32_t tick);
 
     // Open GUI and register view_port
     Gui* gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
     NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
     //notification_message_block(notification, &sequence_display_backlight_enforce_on);
-
-    PomodoroEvent event;
+PomodoroEvent event;
     for(bool processing = true; processing;) {
         FuriStatus event_status = furi_message_queue_get(event_queue, &event, 100);
 
