@@ -1,9 +1,13 @@
 App(
-    appid="Pomodoro",
+    appid="pomodoro",
     name="Pomodoro",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="pomodoro_app",
-    requires=["gui"],
+    requires=[
+        "gui",
+        "notification"
+    ],
     stack_size=1 * 1024,
     order=30,
+    fap_category="Misc",
 )
