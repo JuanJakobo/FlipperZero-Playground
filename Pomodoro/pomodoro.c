@@ -44,12 +44,16 @@ typedef struct {
     InputEvent input;
 } PomodoroEvent;
 
-const NotificationSequence sequence_eat = {
+const NotificationSequence time_up = {
     //&message_display_backlight_off,
+    //&message_blink_set_color_magenta,
+    &message_blue_255,
     &message_vibro_on,
-    //TODO set delay time
-    &message_delay_10,
+    &message_blink_start_10,
+    &message_delay_100,
     &message_vibro_off,
+    //&message_blink_stop,
+    &message_blue_0,
     //&message_display_backlight_on,
     NULL,
 };
@@ -109,9 +113,9 @@ void input_callback(InputEvent* input_event, FuriMessageQueue* event_queue) {
 static void
     pomodoro_process_game_step(Pomodoro* const pomodoro, NotificationApp* notification) {
         pomodoro->count++;
-        if(pomodoro->count >= *pomodoro->endTime){
-            notification_message(notification, &sequence_eat);
-            //notification_message_block(notification, &sequence_eat);
+        if((pomodoro->count) >= *pomodoro->endTime){
+            notification_message(notification, &time_up);
+            //notification_message_block(notification, &time_up);
             if(!pomodoro->notification){
                 pomodoro->notification = true;
             }
