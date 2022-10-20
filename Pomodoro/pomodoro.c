@@ -57,36 +57,34 @@ void draw_callback(Canvas* const canvas, void* ctx) {
         return;
     }
     canvas_set_color(canvas, ColorWhite);
-    canvas_draw_box(canvas, 34, 20, 62, 24);
+    canvas_draw_box(canvas, 17, 20, 92, 24);
 
     canvas_set_color(canvas, ColorBlack);
-    canvas_draw_frame(canvas, 34, 20, 62, 24);
+    canvas_draw_frame(canvas, 17, 20, 92, 24);
 
     canvas_set_font(canvas, FontPrimary);
-
+    char buffer[24];
+    //TODO test if always
     if(!pomodoro->running){
         canvas_draw_str(canvas, 37, 31, "OK to Start");
-    }else{
-        canvas_draw_str(canvas, 37, 31, "Ok to Pause");
-
-        char str[35];
         canvas_set_font(canvas, FontSecondary);
-        snprintf(str,sizeof str, "Timer: %d s, Reps %d", pomodoro->count, pomodoro->repetitions);
-        char buffer[16];
-        switch(pomodoro->state){
-            case Work:
-                snprintf(buffer, sizeof(buffer), "current %d: %d", pomodoro->state, pomodoro->workTime);
-                break;
-            case ShortBreak:
-                snprintf(buffer, sizeof(buffer), "current %d: %d", pomodoro->state, pomodoro->shortBreakTime);
-                break;
-            case LongBreak:
-                snprintf(buffer, sizeof(buffer), "current %d: %d", pomodoro->state, pomodoro->longBreakTime);
-                break;
-        }
-        canvas_draw_str_aligned(canvas, 64, 41, AlignCenter, AlignBottom, buffer);
-        canvas_draw_str(canvas, 2,MAX_Y,str);
+        canvas_draw_str_aligned(canvas, 64, 51, AlignCenter, AlignBottom, "< Change value > ");
+        canvas_draw_str_aligned(canvas, 64, 61, AlignCenter, AlignBottom, "^ Change time ");
+    }else{
+        canvas_draw_str(canvas, 37, 31, "Ok to Stop");
+        canvas_set_font(canvas, FontSecondary);
+        snprintf(buffer,sizeof buffer, "Reps: %d, Timer %ds", pomodoro->repetitions, pomodoro->count);
+        canvas_draw_str_aligned(canvas, 64, 64, AlignCenter, AlignBottom, buffer);
     }
+
+    //TODO shorten
+    if(pomodoro->endTime == &pomodoro->shortBreakTime)
+        snprintf(buffer, sizeof(buffer), " %s(%ds) ", "Short break", *pomodoro->endTime);
+    else if(pomodoro->endTime == &pomodoro->longBreakTime)
+        snprintf(buffer, sizeof(buffer), " %s(%ds) ", "Long break", *pomodoro->endTime);
+    else
+        snprintf(buffer, sizeof(buffer), " %s(%ds) ", "Work", *pomodoro->endTime);
+    canvas_draw_str_aligned(canvas, 64, 41, AlignCenter, AlignBottom, buffer);
     release_mutex((ValueMutex*)ctx, pomodoro);
 }
 
