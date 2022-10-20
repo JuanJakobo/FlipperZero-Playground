@@ -15,14 +15,13 @@
 
 
 //TODO check memory
-//uint8_t x;
 typedef struct {
-    int count;
-    int *endTime;
-    int workTime;
-    int shortBreakTime;
-    int longBreakTime;
-    int repetitions;
+    uint8_t count;
+    uint8_t *endTime;
+    uint8_t workTime;
+    uint8_t shortBreakTime;
+    uint8_t longBreakTime;
+    uint8_t repetitions;
     bool running;
     bool notification;
 } Pomodoro;
@@ -38,16 +37,15 @@ typedef struct {
 } PomodoroEvent;
 
 const NotificationSequence time_up = {
-    //&message_display_backlight_off,
-    //&message_blink_set_color_magenta,
-    &message_blue_255,
     &message_vibro_on,
-    &message_blink_start_10,
+    &message_blue_255,
+
+    &message_note_ds4,
     &message_delay_100,
-    &message_vibro_off,
-    //&message_blink_stop,
+    &message_sound_off,
+
     &message_blue_0,
-    //&message_display_backlight_on,
+    &message_vibro_off,
     NULL,
 };
 
@@ -63,7 +61,7 @@ void draw_callback(Canvas* const canvas, void* ctx) {
     canvas_draw_frame(canvas, 17, 20, 92, 24);
 
     canvas_set_font(canvas, FontPrimary);
-    char buffer[24];
+    char buffer[30];
     //TODO test if always
     if(!pomodoro->running){
         canvas_draw_str(canvas, 37, 31, "OK to Start");
@@ -73,17 +71,17 @@ void draw_callback(Canvas* const canvas, void* ctx) {
     }else{
         canvas_draw_str(canvas, 37, 31, "Ok to Stop");
         canvas_set_font(canvas, FontSecondary);
-        snprintf(buffer,sizeof buffer, "Reps: %d, Timer %ds", pomodoro->repetitions, pomodoro->count);
+        snprintf(buffer,sizeof buffer, "Reps: %d, Timer %d min", pomodoro->repetitions, pomodoro->count);
         canvas_draw_str_aligned(canvas, 64, 64, AlignCenter, AlignBottom, buffer);
     }
 
     //TODO shorten
     if(pomodoro->endTime == &pomodoro->shortBreakTime)
-        snprintf(buffer, sizeof(buffer), " %s(%ds) ", "Short break", *pomodoro->endTime);
+        snprintf(buffer, sizeof(buffer), " %s(%d min) ", "Short break", *pomodoro->endTime);
     else if(pomodoro->endTime == &pomodoro->longBreakTime)
-        snprintf(buffer, sizeof(buffer), " %s(%ds) ", "Long break", *pomodoro->endTime);
+        snprintf(buffer, sizeof(buffer), " %s(%d min) ", "Long break", *pomodoro->endTime);
     else
-        snprintf(buffer, sizeof(buffer), " %s(%ds) ", "Work", *pomodoro->endTime);
+        snprintf(buffer, sizeof(buffer), " %s(%d min) ", "Work", *pomodoro->endTime);
     canvas_draw_str_aligned(canvas, 64, 41, AlignCenter, AlignBottom, buffer);
     release_mutex((ValueMutex*)ctx, pomodoro);
 }
@@ -94,18 +92,6 @@ void input_callback(InputEvent* input_event, FuriMessageQueue* event_queue) {
     PomodoroEvent event = {.type = EventTypeKey, .input = *input_event};
     furi_message_queue_put(event_queue, &event, FuriWaitForever);
 }
-
-static void
-    pomodoro_process_game_step(Pomodoro* const pomodoro, NotificationApp* notification) {
-        pomodoro->count++;
-        if((pomodoro->count) >= *pomodoro->endTime){
-            notification_message(notification, &time_up);
-            //notification_message_block(notification, &time_up);
-            if(!pomodoro->notification){
-                pomodoro->notification = true;
-            }
-        }
-    }
 
 static void pomodoro_update_timer_callback(FuriMessageQueue* event_queue) {
     furi_assert(event_queue);
@@ -132,9 +118,9 @@ static void pomodoro_stop_notification(Pomodoro *pomodoro){
 static void pomodoro_init(Pomodoro* const pomodoro) {
     //TODO change to minutes
     pomodoro->count = 0;
-    pomodoro->workTime = 1500;
-    pomodoro->shortBreakTime = 300;
-    pomodoro->longBreakTime = 1800;
+    pomodoro->workTime = 1;
+    pomodoro->shortBreakTime = 5;
+    pomodoro->longBreakTime = 30;
     pomodoro->endTime= &pomodoro->workTime;
     pomodoro->repetitions = 0;
     pomodoro->running = false;
@@ -159,13 +145,14 @@ int32_t pomodoro_app(void* p) {
 
     FuriTimer* timer = furi_timer_alloc(pomodoro_update_timer_callback, FuriTimerTypePeriodic, event_queue);
     furi_timer_start(timer, furi_ms_to_ticks(1000));
+    uint8_t tick = 0;
 
     // Open GUI and register view_port
     Gui* gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
     NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
     //notification_message_block(notification, &sequence_display_backlight_enforce_on);
-PomodoroEvent event;
+    PomodoroEvent event;
     for(bool processing = true; processing;) {
         FuriStatus event_status = furi_message_queue_get(event_queue, &event, 100);
 
@@ -186,7 +173,7 @@ PomodoroEvent event;
                             break;
                         //Select next choosen object, if start false
                         case InputKeyDown:
-                                if(!pomodoro->running && (*pomodoro->endTime -1) >= 0)
+                                if(!pomodoro->running && (*pomodoro->endTime -1) > 0)
                                     (*pomodoro->endTime)--;
                                 else if(pomodoro->notification)
                                     pomodoro_stop_notification(pomodoro);
@@ -232,8 +219,17 @@ PomodoroEvent event;
                     }
                 }
             } else if(event.type == EventTypeTick) {
-                if(pomodoro->running)
-                    pomodoro_process_game_step(pomodoro, notification);
+                if(pomodoro->running){
+                    if(++tick == 60){
+                        pomodoro->count++;
+                        if((pomodoro->count) >= *pomodoro->endTime && !pomodoro->notification){
+                            pomodoro->notification = true;
+                        }
+                        tick = 0;
+                    }
+                    if(pomodoro->notification)
+                        notification_message(notification, &time_up);
+                }
             }
         }
 
