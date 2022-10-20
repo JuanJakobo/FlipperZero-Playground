@@ -118,7 +118,7 @@ static void pomodoro_stop_notification(Pomodoro *pomodoro){
 static void pomodoro_init(Pomodoro* const pomodoro) {
     //TODO change to minutes
     pomodoro->count = 0;
-    pomodoro->workTime = 1;
+    pomodoro->workTime = 25;
     pomodoro->shortBreakTime = 5;
     pomodoro->longBreakTime = 30;
     pomodoro->endTime= &pomodoro->workTime;
