@@ -24,6 +24,7 @@ typedef enum {
 typedef struct {
     int count;
     //TODO long
+    int *endTime;
     int workTime;
     int shortBreakTime;
     int longBreakTime;
@@ -106,50 +107,18 @@ void input_callback(InputEvent* input_event, FuriMessageQueue* event_queue) {
 }
 
 static void
-    snake_game_process_game_step(Pomodoro* const pomodoro, NotificationApp* notification) {
+    pomodoro_process_game_step(Pomodoro* const pomodoro, NotificationApp* notification) {
         pomodoro->count++;
-
-        //TODO use endtime
-        switch(pomodoro->state){
-            case Work:
-                {
-                    if(pomodoro->count >= pomodoro->workTime){
-                        notification_message(notification, &sequence_eat);
-                        //notification_message_block(notification, &sequence_eat);
-
-                        if(!pomodoro->notification){
-                            pomodoro->repetitions++;
-                            pomodoro->notification = true;
-                        }
-                    }
-                    break;
-                }
-            case ShortBreak:
-                    if(pomodoro->count >= pomodoro->shortBreakTime){
-                        notification_message(notification, &sequence_eat);
-                        //notification_message_block(notification, &sequence_eat);
-
-                        if(!pomodoro->notification){
-                            pomodoro->notification = true;
-                        }
-                    }
-                break;
-            case LongBreak:
-                if(pomodoro->count >= pomodoro->longBreakTime){
-                    notification_message(notification, &sequence_eat);
-                    //notification_message_block(notification, &sequence_eat);
-
-                    if(!pomodoro->notification){
-                        pomodoro->notification = true;
-                    }
-                }
-                break;
+        if(pomodoro->count >= *pomodoro->endTime){
+            notification_message(notification, &sequence_eat);
+            //notification_message_block(notification, &sequence_eat);
+            if(!pomodoro->notification){
+                pomodoro->notification = true;
+            }
         }
-
-
     }
 
-static void snake_game_update_timer_callback(FuriMessageQueue* event_queue) {
+static void pomodoro_update_timer_callback(FuriMessageQueue* event_queue) {
     furi_assert(event_queue);
 
     PomodoroEvent event = {.type = EventTypeTick};
@@ -161,6 +130,7 @@ static void pomodoro_init(Pomodoro* const pomodoro) {
     pomodoro->workTime = 5;
     pomodoro->shortBreakTime = 20;
     pomodoro->longBreakTime = 20;
+    pomodoro->endTime= &pomodoro->workTime;
     pomodoro->repetitions = 0;
     pomodoro->running = false;
 }
@@ -182,7 +152,7 @@ int32_t pomodoro_app(void* p) {
     view_port_draw_callback_set(view_port, draw_callback, &state_mutex);
     view_port_input_callback_set(view_port, input_callback, event_queue);
 
-    FuriTimer* timer = furi_timer_alloc(snake_game_update_timer_callback, FuriTimerTypePeriodic, event_queue);
+    FuriTimer* timer = furi_timer_alloc(pomodoro_update_timer_callback, FuriTimerTypePeriodic, event_queue);
     //TODO changes the frequency of all, use two timer?
     //furi_timer_start(timer, furi_kernel_get_tick_frequency() / 4);
     furi_timer_start(timer, furi_ms_to_ticks(1000));
@@ -227,14 +197,20 @@ int32_t pomodoro_app(void* p) {
                                     pomodoro->count = 0;
                                     //take a short break
                                     if(pomodoro->state == Work){
+                                        ////TODO save to fiels?
+                                        //TODO need both?
                                         pomodoro->state = ShortBreak;
+                                        pomodoro->endTime = &pomodoro->shortBreakTime;
+                                        pomodoro->repetitions++;
                                         if(pomodoro->repetitions == 4){
                                             pomodoro->repetitions = 0;
                                             pomodoro->state = LongBreak;
+                                            pomodoro->endTime = &pomodoro->longBreakTime;
                                             //take a long break
                                         }
                                     }else{
                                         pomodoro->state = Work;
+                                        pomodoro->endTime = &pomodoro->workTime;
                                     }
                                 }
                                 break;
@@ -246,7 +222,7 @@ int32_t pomodoro_app(void* p) {
                         //Close App
                         case InputKeyBack:
                             if(pomodoro->running){
-                                pomodoro->counter = 0;
+                                pomodoro->count = 0;
                                 pomodoro->state = Work;
                                 pomodoro->repetitions = 0;
                             }else{
@@ -261,7 +237,7 @@ int32_t pomodoro_app(void* p) {
                 }
             } else if(event.type == EventTypeTick) {
                 if(pomodoro->running)
-                    snake_game_process_game_step(pomodoro, notification);
+                    pomodoro_process_game_step(pomodoro, notification);
             }
         }
 
