@@ -129,6 +129,21 @@ static void pomodoro_update_timer_callback(FuriMessageQueue* event_queue) {
     furi_message_queue_put(event_queue, &event, 0);
 }
 
+static void pomodoro_stop_notification(Pomodoro *pomodoro){
+    pomodoro->notification = false;
+    pomodoro->count = 0;
+    if(pomodoro->endTime == &pomodoro->workTime){
+        pomodoro->endTime = &pomodoro->shortBreakTime;
+        pomodoro->repetitions++;
+        if(pomodoro->repetitions == 4){
+            pomodoro->repetitions = 0;
+            pomodoro->endTime = &pomodoro->longBreakTime;
+        }
+    }else{
+        pomodoro->endTime = &pomodoro->workTime;
+    }
+}
+
 static void pomodoro_init(Pomodoro* const pomodoro) {
     pomodoro->count = 0;
     pomodoro->workTime = 5;
@@ -180,62 +195,58 @@ int32_t pomodoro_app(void* p) {
             if(event.type == EventTypeKey) {
                 if(event.input.type == InputTypePress) {
                     switch(event.input.key) {
+                        //TODO shorten
                         //Select previous choosen object, if start false
                         case InputKeyUp:
                                 if(!pomodoro->running)
-                                    pomodoro->workTime++;
+                                    (*pomodoro->endTime)++;
+                                else if(pomodoro->notification)
+                                    pomodoro_stop_notification(pomodoro);
                             break;
                         //Select next choosen object, if start false
                         case InputKeyDown:
-                                if(!pomodoro->running)
-                                    pomodoro->workTime--;
+                                if(!pomodoro->running && (*pomodoro->endTime -1) >= 0)
+                                    (*pomodoro->endTime)--;
+                                else if(pomodoro->notification)
+                                    pomodoro_stop_notification(pomodoro);
                             break;
                         //Increase timer for choosen object, if start false
                         case InputKeyRight:
-                            //TODO function
-                                if(!pomodoro->running)
-                                    pomodoro->state++;
-                                else
-                                {
-                                    pomodoro->notification = false;
-                                    pomodoro->count = 0;
-                                    //take a short break
-                                    if(pomodoro->state == Work){
-                                        ////TODO save to fiels?
-                                        //TODO need both?
-                                        pomodoro->state = ShortBreak;
+                                if(!pomodoro->running){
+                                    if(pomodoro->endTime == &pomodoro->workTime)
                                         pomodoro->endTime = &pomodoro->shortBreakTime;
-                                        pomodoro->repetitions++;
-                                        if(pomodoro->repetitions == 4){
-                                            pomodoro->repetitions = 0;
-                                            pomodoro->state = LongBreak;
-                                            pomodoro->endTime = &pomodoro->longBreakTime;
-                                            //take a long break
-                                        }
-                                    }else{
-                                        pomodoro->state = Work;
+                                    else if(pomodoro->endTime == &pomodoro->shortBreakTime)
+                                        pomodoro->endTime = &pomodoro->longBreakTime;
+                                    else
                                         pomodoro->endTime = &pomodoro->workTime;
-                                    }
-                                }
+                                }else if(pomodoro->notification)
+                                    pomodoro_stop_notification(pomodoro);
                                 break;
                         //Decrease timer for choosen object, if start false
                         case InputKeyLeft:
-                                if(!pomodoro->running && (pomodoro->workTime - 1 >= 0))
-                                    pomodoro->state--;
+                                if(!pomodoro->running){
+                                    if(pomodoro->endTime == &pomodoro->workTime)
+                                        pomodoro->endTime = &pomodoro->longBreakTime;
+                                    else if(pomodoro->endTime == &pomodoro->shortBreakTime)
+                                        pomodoro->endTime = &pomodoro->workTime;
+                                    else
+                                        pomodoro->endTime = &pomodoro->shortBreakTime;
+                                }else if(pomodoro->notification)
+                                    pomodoro_stop_notification(pomodoro);
+                                break;
                             break;
                         //Close App
                         case InputKeyBack:
-                            if(pomodoro->running){
-                                pomodoro->count = 0;
-                                pomodoro->state = Work;
-                                pomodoro->repetitions = 0;
-                            }else{
-                                processing = false;
-                            }
+                            processing = false;
                             break;
                         //Pause Pomodoro
                         case InputKeyOk:
                             pomodoro->running = !pomodoro->running;
+                            if(pomodoro->running){
+                                pomodoro->endTime = &pomodoro->workTime;
+                                pomodoro->count = 0;
+                                pomodoro->repetitions = 0;
+                            }
                             break;
                     }
                 }
