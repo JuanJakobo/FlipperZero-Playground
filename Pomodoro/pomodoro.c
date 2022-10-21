@@ -55,34 +55,37 @@ void draw_callback(Canvas* const canvas, void* ctx) {
         return;
     }
     canvas_set_color(canvas, ColorWhite);
-    canvas_draw_box(canvas, 17, 20, 92, 24);
+    canvas_draw_box(canvas, 14, 20, 100, 24);
 
     canvas_set_color(canvas, ColorBlack);
-    canvas_draw_frame(canvas, 17, 20, 92, 24);
+    canvas_draw_frame(canvas, 14, 20, 100, 24);
 
-    canvas_set_font(canvas, FontPrimary);
     char buffer[30];
-    //TODO test if always
-    if(!pomodoro->running){
-        canvas_draw_str(canvas, 37, 31, "OK to Start");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 51, AlignCenter, AlignBottom, "< Change value > ");
-        canvas_draw_str_aligned(canvas, 64, 61, AlignCenter, AlignBottom, "^ Change time ");
-    }else{
-        canvas_draw_str(canvas, 37, 31, "Ok to Stop");
-        canvas_set_font(canvas, FontSecondary);
-        snprintf(buffer,sizeof buffer, "Reps: %d, Timer %d min", pomodoro->repetitions, pomodoro->count);
-        canvas_draw_str_aligned(canvas, 64, 64, AlignCenter, AlignBottom, buffer);
-    }
-
+    canvas_set_font(canvas, FontPrimary);
     //TODO shorten
     if(pomodoro->endTime == &pomodoro->shortBreakTime)
-        snprintf(buffer, sizeof(buffer), " %s(%d min) ", "Short break", *pomodoro->endTime);
+        snprintf(buffer, sizeof(buffer), " %s(%ld min) ", "Short break", *pomodoro->endTime);
     else if(pomodoro->endTime == &pomodoro->longBreakTime)
-        snprintf(buffer, sizeof(buffer), " %s(%d min) ", "Long break", *pomodoro->endTime);
+        snprintf(buffer, sizeof(buffer), " %s(%ld min) ", "Long break", *pomodoro->endTime);
     else
-        snprintf(buffer, sizeof(buffer), " %s(%d min) ", "Work", *pomodoro->endTime);
-    canvas_draw_str_aligned(canvas, 64, 41, AlignCenter, AlignBottom, buffer);
+        snprintf(buffer, sizeof(buffer), " %s(%ld min) ", "Work", *pomodoro->endTime);
+
+    canvas_draw_str_aligned(canvas, 64, 31, AlignCenter, AlignBottom, buffer);
+
+    if(pomodoro->running){
+        canvas_set_font(canvas, FontSecondary);
+        snprintf(buffer,sizeof buffer, "Reps %ld, Timer %ld min", pomodoro->repetitions, pomodoro->count);
+        canvas_draw_str_aligned(canvas, 64, 41, AlignCenter, AlignBottom, buffer);
+        canvas_draw_str(canvas, 2, 64, "OK to Pause, Back to restart");
+    }else{
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 64, 41, AlignCenter, AlignBottom, "< Change value > ");
+        canvas_draw_str(canvas, 2, 64, "OK to start, Back to close");
+    }
+
+    if(pomodoro->notification)
+        canvas_draw_str_aligned(canvas, 64, 11, AlignCenter, AlignBottom, "Time is up, press arrow key");
+
     release_mutex((ValueMutex*)ctx, pomodoro);
 }
 
@@ -104,13 +107,17 @@ static void pomodoro_stop_notification(Pomodoro *pomodoro){
     pomodoro->notification = false;
     pomodoro->count = 0;
     if(pomodoro->endTime == &pomodoro->workTime){
-        pomodoro->endTime = &pomodoro->shortBreakTime;
         pomodoro->repetitions++;
         if(pomodoro->repetitions == 4){
             pomodoro->repetitions = 0;
+            pomodoro->state = longBreakTime;
             pomodoro->endTime = &pomodoro->longBreakTime;
+        }else{
+            pomodoro->state = shortBreakTime;
+            pomodoro->endTime = &pomodoro->shortBreakTime;
         }
     }else{
+        pomodoro->state = workTime;
         pomodoro->endTime = &pomodoro->workTime;
     }
 }
@@ -131,7 +138,6 @@ int32_t pomodoro_app(void* p) {
 
     Pomodoro* pomodoro = malloc(sizeof(Pomodoro));
     FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(PomodoroEvent));
-    pomodoro_init(pomodoro);
 
     ValueMutex state_mutex;
     if(!init_mutex(&state_mutex, pomodoro, sizeof(Pomodoro))) {
@@ -139,6 +145,9 @@ int32_t pomodoro_app(void* p) {
         free(pomodoro);
         return 255;
     }
+
+    pomodoro_init(pomodoro);
+
     ViewPort* view_port = view_port_alloc();
     view_port_draw_callback_set(view_port, draw_callback, &state_mutex);
     view_port_input_callback_set(view_port, input_callback, event_queue);
@@ -154,6 +163,7 @@ int32_t pomodoro_app(void* p) {
     //notification_message_block(notification, &sequence_display_backlight_enforce_on);
     PomodoroEvent event;
     for(bool processing = true; processing;) {
+
         FuriStatus event_status = furi_message_queue_get(event_queue, &event, 100);
 
         Pomodoro* pomodoro = (Pomodoro*)acquire_mutex_block(&state_mutex);
@@ -166,74 +176,93 @@ int32_t pomodoro_app(void* p) {
                         //TODO shorten
                         //Select previous choosen object, if start false
                         case InputKeyUp:
-                                if(!pomodoro->running)
-                                    (*pomodoro->endTime)++;
-                                else if(pomodoro->notification)
-                                    pomodoro_stop_notification(pomodoro);
+                            if(!pomodoro->running)
+                                (*pomodoro->endTime)++;
+                            else if(pomodoro->notification)
+                                pomodoro_stop_notification(pomodoro);
                             break;
                         //Select next choosen object, if start false
                         case InputKeyDown:
-                                if(!pomodoro->running && (*pomodoro->endTime -1) > 0)
-                                    (*pomodoro->endTime)--;
-                                else if(pomodoro->notification)
-                                    pomodoro_stop_notification(pomodoro);
+                            if(!pomodoro->running && (*pomodoro->endTime -1) > 0)
+                                (*pomodoro->endTime)--;
+                            else if(pomodoro->notification)
+                                pomodoro_stop_notification(pomodoro);
                             break;
                         //Increase timer for choosen object, if start false
                         case InputKeyRight:
-                                if(!pomodoro->running){
-                                    if(pomodoro->endTime == &pomodoro->workTime)
-                                        pomodoro->endTime = &pomodoro->shortBreakTime;
-                                    else if(pomodoro->endTime == &pomodoro->shortBreakTime)
-                                        pomodoro->endTime = &pomodoro->longBreakTime;
-                                    else
-                                        pomodoro->endTime = &pomodoro->workTime;
-                                }else if(pomodoro->notification)
-                                    pomodoro_stop_notification(pomodoro);
-                                break;
-                        //Decrease timer for choosen object, if start false
+                            //TODO use -- and ++?
+                            if(!pomodoro->running){
+                                if(pomodoro->endTime == &pomodoro->workTime)
+                                    pomodoro->endTime = &pomodoro->shortBreakTime;
+                                else if(pomodoro->endTime == &pomodoro->shortBreakTime)
+                                    pomodoro->endTime = &pomodoro->longBreakTime;
+                                else
+                                    pomodoro->endTime = &pomodoro->workTime;
+                            }else if(pomodoro->notification)
+                                pomodoro_stop_notification(pomodoro);
+                            break;
+                            //Decrease timer for choosen object, if start false
                         case InputKeyLeft:
-                                if(!pomodoro->running){
-                                    if(pomodoro->endTime == &pomodoro->workTime)
-                                        pomodoro->endTime = &pomodoro->longBreakTime;
-                                    else if(pomodoro->endTime == &pomodoro->shortBreakTime)
-                                        pomodoro->endTime = &pomodoro->workTime;
-                                    else
-                                        pomodoro->endTime = &pomodoro->shortBreakTime;
-                                }else if(pomodoro->notification)
-                                    pomodoro_stop_notification(pomodoro);
-                                break;
+                            if(!pomodoro->running){
+                                if(pomodoro->endTime == &pomodoro->workTime)
+                                    pomodoro->endTime = &pomodoro->longBreakTime;
+                                else if(pomodoro->endTime == &pomodoro->shortBreakTime)
+                                    pomodoro->endTime = &pomodoro->workTime;
+                                else
+                                    pomodoro->endTime = &pomodoro->shortBreakTime;
+                            }else if(pomodoro->notification)
+                                pomodoro_stop_notification(pomodoro);
                             break;
-                        //Close App
+                            //Reset while running or Close App
                         case InputKeyBack:
-                            processing = false;
-                            break;
-                        //Pause Pomodoro
-                        case InputKeyOk:
-                            pomodoro->running = !pomodoro->running;
                             if(pomodoro->running){
                                 pomodoro->endTime = &pomodoro->workTime;
                                 pomodoro->count = 0;
                                 pomodoro->repetitions = 0;
+                                tick = 0;
+                            }else
+                                processing = false;
+                            break;
+                            //Switch between start running, save each time
+                        case InputKeyOk:
+                            if(!pomodoro->running){
+                                pomodoro_save_settings(pomodoro);
+                                switch(pomodoro->state){
+                                    case shortBreakTime:
+                                        pomodoro->endTime = &pomodoro->shortBreakTime;
+                                        break;
+                                    case longBreakTime:
+                                        pomodoro->endTime = &pomodoro->longBreakTime;
+                                        break;
+                                    default:
+                                        pomodoro->endTime = &pomodoro->workTime;
+                                        break;
+                                }
+                            }else{
+                                pomodoro_save_current_run(pomodoro);
+                                pomodoro->notification = false;
                             }
+                            pomodoro->running = !pomodoro->running;
                             break;
                     }
+                    view_port_update(view_port);
                 }
             } else if(event.type == EventTypeTick) {
                 if(pomodoro->running){
                     if(++tick == 60){
                         pomodoro->count++;
-                        if((pomodoro->count) >= *pomodoro->endTime && !pomodoro->notification){
-                            pomodoro->notification = true;
-                        }
                         tick = 0;
                     }
+                    if(!pomodoro->notification && (pomodoro->count) >= *pomodoro->endTime){
+                        pomodoro->notification = true;
+                    }
+                    view_port_update(view_port);
                     if(pomodoro->notification)
                         notification_message(notification, &time_up);
                 }
             }
         }
 
-        view_port_update(view_port);
         release_mutex(&state_mutex, pomodoro);
     }
 
