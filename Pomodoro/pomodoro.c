@@ -1,3 +1,12 @@
+//------------------------------------------------------------------
+// pomodoro.c
+//
+// Author:           JuanJakobo
+// Date:             22.10.22
+// Description:      Lets the user set the timers for the Pomodoro method. On Pause saves the current run to an config file.
+// How does it work: Decide on the task to be done. Set the pomodoro timer (typically for 25 minutes).[1] Work on the task. End work when the timer rings and take a short break (typically 5–10 minutes).[5] If you have finished fewer than three pomodoros, go back to Step 2 and repeat until you go through all three pomodoros. After three pomodoros are done, take the fourth pomodoro and then take a long break (typically 20 to 30 minutes). Once the long break is finished, return to step 2. (https://en.wikipedia.org/wiki/Pomodoro_Technique)
+//-------------------------------------------------------------------
+
 #include <furi.h>
 #include <gui/gui.h>
 #include <input/input.h>
@@ -17,6 +26,9 @@ typedef struct {
     InputEvent input;
 } PomodoroEvent;
 
+/**
+ * Notification to be played once the timer is up
+ */
 const NotificationSequence time_up = {
     &message_vibro_on,
     &message_blue_255,
@@ -30,7 +42,13 @@ const NotificationSequence time_up = {
     NULL,
 };
 
-void draw_callback(Canvas* const canvas, void* ctx) {
+/**
+ * Handles the drawing of imtes to the screen
+ *
+ * @param Canvas
+ * @param ctx
+ */
+static void draw_callback(Canvas* const canvas, void* ctx) {
     const Pomodoro* pomodoro = acquire_mutex((ValueMutex*)ctx, 25);
     if(pomodoro == NULL) {
         return;
@@ -43,7 +61,7 @@ void draw_callback(Canvas* const canvas, void* ctx) {
 
     char buffer[30];
     canvas_set_font(canvas, FontPrimary);
-    //TODO shorten
+    //TODO shorten, use enum?
     if(pomodoro->endTime == &pomodoro->shortBreakTime)
         snprintf(buffer, sizeof(buffer), " %s(%ld min) ", "Short break", *pomodoro->endTime);
     else if(pomodoro->endTime == &pomodoro->longBreakTime)
@@ -70,13 +88,24 @@ void draw_callback(Canvas* const canvas, void* ctx) {
     release_mutex((ValueMutex*)ctx, pomodoro);
 }
 
-void input_callback(InputEvent* input_event, FuriMessageQueue* event_queue) {
+/**
+ * Handles input events and adds them to a queue
+ *
+ * @param input_event input event to add
+ * @param event_queue queue to add the input to
+ */
+static void input_callback(InputEvent* input_event, FuriMessageQueue* event_queue) {
     furi_assert(event_queue);
 
     PomodoroEvent event = {.type = EventTypeKey, .input = *input_event};
     furi_message_queue_put(event_queue, &event, FuriWaitForever);
 }
 
+/**
+ * Handles the timer
+ *
+ * @param event_queue queue to add the timer tick to
+ */
 static void pomodoro_update_timer_callback(FuriMessageQueue* event_queue) {
     furi_assert(event_queue);
 
@@ -84,7 +113,13 @@ static void pomodoro_update_timer_callback(FuriMessageQueue* event_queue) {
     furi_message_queue_put(event_queue, &event, 0);
 }
 
-static void pomodoro_stop_notification(Pomodoro *pomodoro){
+/**
+ * Stops the notification
+ *
+ * @param pomodoro object that stores the current status
+ */
+static void pomodoro_stop_notification(Pomodoro* const pomodoro){
+//TODO always sets both...
     pomodoro->notification = false;
     pomodoro->count = 0;
     if(pomodoro->endTime == &pomodoro->workTime){
