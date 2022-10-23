@@ -13,25 +13,6 @@
 #include <flipper_format/flipper_format.h>
 #include "types.h"
 
-
-#define CONFIG_FILE_DIRECTORY_PATH "/ext/apps/misc"
-#define CONFIG_FILE_PATH CONFIG_FILE_DIRECTORY_PATH "/pomodoro.conf"
-
-#define CONFIG_FILE_HEADER "Flipper Pomodoro plugin config file"
-#define CONFIG_FILE_ACTUAL_VERSION 1
-#define POMODORO_CONFIG_KEY_WORK_TIME "workTime"
-#define POMODORO_CONFIG_KEY_SHORT_BREAK_TIME "shortBreakTime"
-#define POMODORO_CONFIG_KEY_LONG_BREAK_TIME "longBreakTime"
-#define POMODORO_CONFIG_KEY_COUNT "count"
-#define POMODORO_CONFIG_KEY_REPETITIONS "repetitions"
-#define POMODORO_CONFIG_KEY_STATE "state"
-
-// Default values
-#define WORK_TIME 25
-#define SHORT_BREAK_TIME 5
-#define LONG_BREAK_TIME 30
-
-
 /**
  * @param pomodoro Pomodoro object to be saved
  */
