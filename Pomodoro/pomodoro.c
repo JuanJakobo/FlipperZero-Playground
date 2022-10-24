@@ -13,8 +13,8 @@
 #include <stdlib.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
-#include "types.h"
-#include "file_access.h"
+#include "helpers/pomodoro_types.h"
+#include "helpers/pomodoro_file_access.h"
 
 typedef enum {
     EventTypeTick,

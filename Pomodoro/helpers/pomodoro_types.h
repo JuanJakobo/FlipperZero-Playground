@@ -1,3 +1,4 @@
+#pragma once
 //------------------------------------------------------------------
 // types.h
 //
@@ -5,9 +6,6 @@
 // Date:             22.10.22
 // Description:      Stores the custom types used in different files
 //-------------------------------------------------------------------
-
-#ifndef TYPES
-#define TYPES
 
 typedef enum {
     workTime = 0,
@@ -27,5 +25,3 @@ typedef struct {
     bool running;
     bool notification;
 } Pomodoro;
-
-#endif

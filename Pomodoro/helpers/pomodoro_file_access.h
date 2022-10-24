@@ -1,3 +1,4 @@
+#pragma once
 //------------------------------------------------------------------
 // file_access.h
 //
@@ -6,12 +7,21 @@
 // Description:      Enables to store and retrieve data stored in a config file
 //-------------------------------------------------------------------
 
-#ifndef FILE_ACCESS
-#define FILE_ACCESS
 #include <furi.h>
-
 #include <flipper_format/flipper_format.h>
-#include "types.h"
+#include "pomodoro_types.h"
+
+#define POMODORO_FILE_DIR_PATH "/ext/apps/misc"
+#define POMODORO_FILE_PATH POMODORO_FILE_DIR_PATH "/pomodoro.conf"
+
+#define POMODORO_FILE_HEADER "Flipper Pomodoro plugin config file"
+#define POMODORO_FILE_ACTUAL_VERSION 1
+#define POMODORO_CONFIG_KEY_WORK_TIME "workTime"
+#define POMODORO_CONFIG_KEY_SHORT_BREAK_TIME "shortBreakTime"
+#define POMODORO_CONFIG_KEY_LONG_BREAK_TIME "longBreakTime"
+#define POMODORO_CONFIG_KEY_COUNT "count"
+#define POMODORO_CONFIG_KEY_REPETITIONS "repetitions"
+#define POMODORO_CONFIG_KEY_STATE "state"
 
 /**
  * @param pomodoro Pomodoro object to be saved
@@ -27,5 +37,3 @@
  * @param pomodoro Pomodoro object that should store the values
  */
  void pomodoro_get_initial_values(Pomodoro *pomodoro);
-
-#endif

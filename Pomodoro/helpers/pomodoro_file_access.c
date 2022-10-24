@@ -5,19 +5,7 @@
 // Date:             22.10.22
 //-------------------------------------------------------------------
 
-#include "file_access.h"
-
-const char *POMODORO_FILE_DIR_PATH = "/ext/apps/misc";
-const char *POMODORO_FILE_PATH = "/ext/apps/misc/pomdoro.conf";
-
-const char *POMODORO_FILE_HEADER = "Flipper Pomodoro plugin config file";
-const int POMODORO_FILE_ACTUAL_VERSION = 1;
-const char *POMODORO_CONFIG_KEY_WORK_TIME = "workTime";
-const char *POMODORO_CONFIG_KEY_SHORT_BREAK_TIME = "shortBreakTime";
-const char *POMODORO_CONFIG_KEY_LONG_BREAK_TIME = "longBreakTime";
-const char *POMODORO_CONFIG_KEY_COUNT = "count";
-const char *POMODORO_CONFIG_KEY_REPETITIONS = "repetitions";
-const char *POMODORO_CONFIG_KEY_STATE = "state";
+#include "pomodoro_file_access.h"
 
 /**
  * Closes the openend file
@@ -116,25 +104,20 @@ const char *POMODORO_CONFIG_KEY_STATE = "state";
     }
     furi_string_free(file_type);
 
-    if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_WORK_TIME, &pomodoro->workTime, 1)){
+    if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_WORK_TIME, &pomodoro->workTime, 1))
         pomodoro->workTime = 25;
-    }
 
-    if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_SHORT_BREAK_TIME, &pomodoro->shortBreakTime, 1)) {
+    if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_SHORT_BREAK_TIME, &pomodoro->shortBreakTime, 1))
         pomodoro->shortBreakTime = 5;
-    }
 
-    if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_LONG_BREAK_TIME, &pomodoro->longBreakTime, 1)) {
+    if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_LONG_BREAK_TIME, &pomodoro->longBreakTime, 1))
         pomodoro->longBreakTime = 30;
-    }
 
-    if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_COUNT, &pomodoro->count, 1)) {
+    if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_COUNT, &pomodoro->count, 1))
         pomodoro->count = 0;
-    }
 
-    if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_REPETITIONS, &pomodoro->repetitions, 1)) {
+    if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_REPETITIONS, &pomodoro->repetitions, 1))
         pomodoro->repetitions = 0;
-    }
 
     pomodoro->running = (pomodoro->count > 0 || pomodoro->repetitions > 0) ? true : false;
 
