@@ -13,6 +13,7 @@
  * @param file file that shall be closed
  */
  static void pomodoro_close_config_file(FlipperFormat* file) {
+    furi_record_close(RECORD_STORAGE);
     if(file == NULL) return;
     flipper_format_file_close(file);
     flipper_format_free(file);
@@ -24,7 +25,8 @@
  *
  * @param storage
  */
- static FlipperFormat* pomodoro_open_config_file(Storage* storage) {
+ static FlipperFormat* pomodoro_open_config_file() {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
     FlipperFormat* file = flipper_format_file_alloc(storage);
 
     if(storage_common_stat(storage, POMODORO_FILE_PATH, NULL) == FSE_OK) {
@@ -50,23 +52,24 @@
     return file;
 }
 
-
 /**
  * Saves the current run to the config file so it can be initializied again
  *
  * @param pomodoro contains the run values to be saved
  */
  void pomodoro_save_current_run(const Pomodoro *pomodoro) {
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    FlipperFormat* file = pomodoro_open_config_file(storage);
+    FlipperFormat* file = pomodoro_open_config_file();
 
-    flipper_format_insert_or_update_uint32(file, POMODORO_CONFIG_KEY_COUNT, &pomodoro->count, 1);
-    flipper_format_insert_or_update_uint32(file, POMODORO_CONFIG_KEY_REPETITIONS, &pomodoro->repetitions, 1);
-    uint32_t state = pomodoro->state;
-    flipper_format_insert_or_update_uint32(file, POMODORO_CONFIG_KEY_STATE, &state, 1);
+    uint32_t temp = pomodoro->count;
+    flipper_format_insert_or_update_uint32(file, POMODORO_CONFIG_KEY_COUNT, &temp, 1);
+
+    temp = pomodoro->repetitions;
+    flipper_format_insert_or_update_uint32(file, POMODORO_CONFIG_KEY_REPETITIONS, &temp, 1);
+
+    temp = pomodoro->state;
+    flipper_format_insert_or_update_uint32(file, POMODORO_CONFIG_KEY_STATE, &temp, 1);
 
     pomodoro_close_config_file(file);
-    furi_record_close(RECORD_STORAGE);
 }
 
 /**
@@ -75,15 +78,13 @@
  * @param pomodoro contains the times for the runs to be saved
  */
  void pomodoro_save_settings(const Pomodoro *pomodoro) {
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    FlipperFormat* file = pomodoro_open_config_file(storage);
+    FlipperFormat* file = pomodoro_open_config_file();
 
     flipper_format_insert_or_update_uint32(file, POMODORO_CONFIG_KEY_WORK_TIME, &pomodoro->workTime, 1);
     flipper_format_insert_or_update_uint32(file, POMODORO_CONFIG_KEY_SHORT_BREAK_TIME, &pomodoro->shortBreakTime, 1);
     flipper_format_insert_or_update_uint32(file, POMODORO_CONFIG_KEY_LONG_BREAK_TIME, &pomodoro->longBreakTime, 1);
 
     pomodoro_close_config_file(file);
-    furi_record_close(RECORD_STORAGE);
 }
 
 /**
@@ -92,8 +93,7 @@
  * @param pomodoro variable where the loaded items are written to
  */
  void pomodoro_get_initial_values(Pomodoro *pomodoro){
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    FlipperFormat* file = pomodoro_open_config_file(storage);
+    FlipperFormat* file = pomodoro_open_config_file();
 
     FuriString* file_type = furi_string_alloc();
 
@@ -141,5 +141,4 @@
     }
 
     pomodoro_close_config_file(file);
-    furi_record_close(RECORD_STORAGE);
 }

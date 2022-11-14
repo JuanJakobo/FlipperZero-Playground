@@ -125,6 +125,7 @@ static void pomodoro_stop_notification(Pomodoro* const pomodoro){
     if(pomodoro->endTime == &pomodoro->workTime){
         pomodoro->repetitions++;
         if(pomodoro->repetitions == 4){
+            pomodoro->totalruns = pomodoro->totalruns + 3;
             pomodoro->repetitions = 0;
             pomodoro->state = longBreakTime;
             pomodoro->endTime = &pomodoro->longBreakTime;
@@ -257,6 +258,8 @@ int32_t pomodoro_app(void* p) {
                                 pomodoro->notification = false;
                             }
                             pomodoro->running = !pomodoro->running;
+                            break;
+                        case InputKeyMAX:
                             break;
                     }
                     view_port_update(view_port);

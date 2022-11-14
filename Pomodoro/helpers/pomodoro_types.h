@@ -21,6 +21,7 @@ typedef struct {
     uint32_t shortBreakTime;
     uint32_t longBreakTime;
     uint32_t repetitions;
+    uint32_t totalruns;
     PomodoroState state;
     bool running;
     bool notification;
