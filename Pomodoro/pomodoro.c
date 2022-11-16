@@ -186,24 +186,41 @@ int32_t pomodoro_app(void* p) {
         if(event_status == FuriStatusOk) {
             // key events
             if(event.type == EventTypeKey) {
-                if(event.input.type == InputTypePress) {
+                if(event.input.type == InputTypeLong){
+                    //close app on long return press
+                    if(event.input.key == InputKeyBack) {
+                        if(pomodoro->running) {
+                            pomodoro_save_current_run(pomodoro);
+                        }
+                        processing = false;
+                    //if long press down, reset timers
+                    }else if(event.input.key == InputKeyDown) {
+                        pomodoro->endTime = &pomodoro->workTime;
+                        pomodoro->state = workTime;
+                        pomodoro->count = 0;
+                        pomodoro->repetitions = 0;
+                        tick = 0;
+                    }
+                }else if(event.input.type == InputTypePress) {
                     switch(event.input.key) {
                         //TODO shorten
-                        //Select previous choosen object, if start false
+                        //Select previous choosen object in optipns
                         case InputKeyUp:
-                            if(!pomodoro->running)
+                            if(!pomodoro->running) {
                                 (*pomodoro->endTime)++;
-                            else if(pomodoro->notification)
+                            }else if(pomodoro->notification){
                                 pomodoro_stop_notification(pomodoro);
+                            }
                             break;
-                            //Select next choosen object, if start false
+                            //Select next choosen object in options
                         case InputKeyDown:
-                            if(!pomodoro->running && (*pomodoro->endTime -1) > 0)
+                            if(!pomodoro->running && (*pomodoro->endTime -1) > 0) {
                                 (*pomodoro->endTime)--;
-                            else if(pomodoro->notification)
+                            }else if(pomodoro->notification){
                                 pomodoro_stop_notification(pomodoro);
+                            }
                             break;
-                            //Increase timer for choosen object, if start false
+                            //Increase timer for choosen object in options
                         case InputKeyRight:
                             //TODO use -- and ++?
                             if(!pomodoro->running){
@@ -213,10 +230,11 @@ int32_t pomodoro_app(void* p) {
                                     pomodoro->endTime = &pomodoro->longBreakTime;
                                 else
                                     pomodoro->endTime = &pomodoro->workTime;
-                            }else if(pomodoro->notification)
+                            }else if(pomodoro->notification){
                                 pomodoro_stop_notification(pomodoro);
+                            }
                             break;
-                            //Decrease timer for choosen object, if start false
+                            //Decrease timer for choosen object in options, if running stop running
                         case InputKeyLeft:
                             if(!pomodoro->running){
                                 if(pomodoro->endTime == &pomodoro->workTime)
@@ -225,21 +243,14 @@ int32_t pomodoro_app(void* p) {
                                     pomodoro->endTime = &pomodoro->workTime;
                                 else
                                     pomodoro->endTime = &pomodoro->shortBreakTime;
-                            }else if(pomodoro->notification)
+                            }else if(pomodoro->notification){
                                 pomodoro_stop_notification(pomodoro);
+                            }
                             break;
-                            //Reset while running or Close App
+                            //Stop running
                         case InputKeyBack:
-                            if(pomodoro->running){
-                                pomodoro->endTime = &pomodoro->workTime;
-                                pomodoro->state = workTime;
-                                pomodoro->count = 0;
-                                pomodoro->repetitions = 0;
-                                tick = 0;
-                            }else
-                                processing = false;
                             break;
-                            //Switch between start running, save each time
+                            //Start if is in settings, saving defaults each time, if running stop notification
                         case InputKeyOk:
                             if(!pomodoro->running){
                                 pomodoro_save_settings(pomodoro);
@@ -254,11 +265,11 @@ int32_t pomodoro_app(void* p) {
                                         pomodoro->endTime = &pomodoro->workTime;
                                         break;
                                 }
+                                pomodoro->running = true;
                             }else{
-                                pomodoro_save_current_run(pomodoro);
                                 pomodoro->notification = false;
+                                pomodoro->running = false;
                             }
-                            pomodoro->running = !pomodoro->running;
                             break;
                         case InputKeyMAX:
                             break;
