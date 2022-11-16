@@ -281,11 +281,12 @@ int32_t pomodoro_app(void* p) {
                     if(++tick == 60){
                         pomodoro->count++;
                         tick = 0;
+                        view_port_update(view_port);
                     }
                     if(!pomodoro->notification && (pomodoro->count) >= *pomodoro->endTime){
                         pomodoro->notification = true;
+                        view_port_update(view_port);
                     }
-                    view_port_update(view_port);
                     if(pomodoro->notification)
                         notification_message(notification, &time_up);
                 }
