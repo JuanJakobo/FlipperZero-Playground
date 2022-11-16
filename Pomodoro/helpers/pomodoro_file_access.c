@@ -69,6 +69,9 @@
     temp = pomodoro->state;
     flipper_format_insert_or_update_uint32(file, POMODORO_CONFIG_KEY_STATE, &temp, 1);
 
+    temp = pomodoro->totalruns;
+    flipper_format_insert_or_update_uint32(file, POMODORO_CONFIG_KEY_TOTAL_RUNS, &temp, 1);
+
     pomodoro_close_config_file(file);
 }
 
@@ -118,6 +121,9 @@
 
     if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_REPETITIONS, &pomodoro->repetitions, 1))
         pomodoro->repetitions = 0;
+
+    if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_TOTAL_RUNS, &pomodoro->totalruns, 1))
+        pomodoro->totalruns = 0;
 
     pomodoro->running = (pomodoro->count > 0 || pomodoro->repetitions > 0) ? true : false;
 

@@ -22,7 +22,7 @@
 #define POMODORO_CONFIG_KEY_COUNT "count"
 #define POMODORO_CONFIG_KEY_REPETITIONS "repetitions"
 #define POMODORO_CONFIG_KEY_STATE "state"
-
+#define POMODORO_CONFIG_KEY_TOTAL_RUNS "totalRuns"
 /**
  * @param pomodoro Pomodoro object to be saved
  */

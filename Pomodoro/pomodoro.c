@@ -71,19 +71,20 @@ static void draw_callback(Canvas* const canvas, void* ctx) {
 
     canvas_draw_str_aligned(canvas, 64, 31, AlignCenter, AlignBottom, buffer);
 
+    canvas_set_font(canvas, FontSecondary);
     if(pomodoro->running){
-        canvas_set_font(canvas, FontSecondary);
+        if(pomodoro->notification) {
+            canvas_draw_str_aligned(canvas, 64, 11, AlignCenter, AlignBottom, "Time is up, press arrow key");
+        }
         snprintf(buffer,sizeof buffer, "Reps %ld, Timer %ld min", pomodoro->repetitions, pomodoro->count);
         canvas_draw_str_aligned(canvas, 64, 41, AlignCenter, AlignBottom, buffer);
-        canvas_draw_str(canvas, 2, 64, "OK to Pause, Back to restart");
+        canvas_draw_str_aligned(canvas, 2, 60, AlignLeft, AlignBottom, "OK to Pause, Down to Restart");
     }else{
-        canvas_set_font(canvas, FontSecondary);
+        snprintf(buffer,sizeof buffer, "Total reps %ld", pomodoro->totalruns);
+        canvas_draw_str_aligned(canvas, 120, 60, AlignRight, AlignBottom, buffer);
         canvas_draw_str_aligned(canvas, 64, 41, AlignCenter, AlignBottom, "< Change value > ");
-        canvas_draw_str(canvas, 2, 64, "OK to start, Back to close");
+        canvas_draw_str_aligned(canvas, 2, 60, AlignLeft, AlignBottom, "OK to start");
     }
-
-    if(pomodoro->notification)
-        canvas_draw_str_aligned(canvas, 64, 11, AlignCenter, AlignBottom, "Time is up, press arrow key");
 
     release_mutex((ValueMutex*)ctx, pomodoro);
 }
@@ -124,8 +125,8 @@ static void pomodoro_stop_notification(Pomodoro* const pomodoro){
     pomodoro->count = 0;
     if(pomodoro->endTime == &pomodoro->workTime){
         pomodoro->repetitions++;
+        pomodoro->totalruns = pomodoro->totalruns + 1;
         if(pomodoro->repetitions == 4){
-            pomodoro->totalruns = pomodoro->totalruns + 3;
             pomodoro->repetitions = 0;
             pomodoro->state = longBreakTime;
             pomodoro->endTime = &pomodoro->longBreakTime;
