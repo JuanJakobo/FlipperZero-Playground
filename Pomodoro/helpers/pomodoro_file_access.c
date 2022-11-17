@@ -122,9 +122,6 @@
     if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_REPETITIONS, &pomodoro->repetitions, 1))
         pomodoro->repetitions = 0;
 
-    if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_TOTAL_RUNS, &pomodoro->totalruns, 1))
-        pomodoro->totalruns = 0;
-
     pomodoro->running = (pomodoro->count > 0 || pomodoro->repetitions > 0) ? true : false;
 
     uint32_t state;
@@ -135,16 +132,19 @@
     }
 
     switch(pomodoro->state){
+        case workTime:
+            pomodoro->endTime = &pomodoro->workTime;
+            break;
         case longBreakTime:
             pomodoro->endTime = &pomodoro->longBreakTime;
             break;
         case shortBreakTime:
             pomodoro->endTime = &pomodoro->shortBreakTime;
             break;
-        default:
-            pomodoro->endTime = &pomodoro->workTime;
-            break;
     }
+
+    if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_TOTAL_RUNS, &pomodoro->totalruns, 1))
+        pomodoro->totalruns = 0;
 
     pomodoro_close_config_file(file);
 }
