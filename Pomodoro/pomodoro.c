@@ -189,9 +189,7 @@ int32_t pomodoro_app(void* p) {
                 if(event.input.type == InputTypeLong){
                     //close app on long return press
                     if(event.input.key == InputKeyBack) {
-                        if(pomodoro->running) {
                             pomodoro_save_current_run(pomodoro);
-                        }
                         processing = false;
                     //if long press down, reset timers
                     }else if(event.input.key == InputKeyDown) {

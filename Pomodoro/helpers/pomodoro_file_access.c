@@ -116,6 +116,8 @@
     if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_LONG_BREAK_TIME, &pomodoro->longBreakTime, 1))
         pomodoro->longBreakTime = 30;
 
+    flipper_format_rewind(file);
+
     if(!flipper_format_read_uint32(file, POMODORO_CONFIG_KEY_COUNT, &pomodoro->count, 1))
         pomodoro->count = 0;
 
