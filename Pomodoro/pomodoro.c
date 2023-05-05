@@ -49,10 +49,11 @@ const NotificationSequence time_up = {
  * @param ctx
  */
 static void draw_callback(Canvas* const canvas, void* ctx) {
-    const Pomodoro* pomodoro = acquire_mutex((ValueMutex*)ctx, 25);
-    if(pomodoro == NULL) {
-        return;
-    }
+    furi_assert(ctx);
+    const Pomodoro* pomodoro = ctx;
+
+    furi_mutex_acquire(pomodoro->mutex, FuriWaitForever);
+
     canvas_set_color(canvas, ColorWhite);
     canvas_draw_box(canvas, 14, 20, 100, 24);
 
@@ -86,7 +87,7 @@ static void draw_callback(Canvas* const canvas, void* ctx) {
         canvas_draw_str_aligned(canvas, 2, 60, AlignLeft, AlignBottom, "OK to start");
     }
 
-    release_mutex((ValueMutex*)ctx, pomodoro);
+    furi_mutex_release(pomodoro->mutex);
 }
 
 /**
@@ -151,8 +152,9 @@ int32_t pomodoro_app(void* p) {
     Pomodoro* pomodoro = malloc(sizeof(Pomodoro));
     FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(PomodoroEvent));
 
-    ValueMutex state_mutex;
-    if(!init_mutex(&state_mutex, pomodoro, sizeof(Pomodoro))) {
+    pomodoro->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+
+    if(!pomodoro->mutex) {
         FURI_LOG_E("Pomodoro", "cannot create mutex\r\n");
         free(pomodoro);
         return 255;
@@ -161,7 +163,7 @@ int32_t pomodoro_app(void* p) {
     pomodoro_get_initial_values(pomodoro);
 
     ViewPort* view_port = view_port_alloc();
-    view_port_draw_callback_set(view_port, draw_callback, &state_mutex);
+    view_port_draw_callback_set(view_port, draw_callback, pomodoro);
     view_port_input_callback_set(view_port, input_callback, event_queue);
 
     //TODO start timer when is running is true?
@@ -174,14 +176,14 @@ int32_t pomodoro_app(void* p) {
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
     // Register notifications
-    NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
+    //NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
 
     PomodoroEvent event;
     for(bool processing = true; processing;) {
 
         FuriStatus event_status = furi_message_queue_get(event_queue, &event, 100);
 
-        Pomodoro* pomodoro = (Pomodoro*)acquire_mutex_block(&state_mutex);
+        furi_mutex_acquire(pomodoro->mutex, FuriWaitForever);
 
         if(event_status == FuriStatusOk) {
             // key events
@@ -189,7 +191,7 @@ int32_t pomodoro_app(void* p) {
                 if(event.input.type == InputTypeLong){
                     //close app on long return press
                     if(event.input.key == InputKeyBack) {
-                            pomodoro_save_current_run(pomodoro);
+                        pomodoro_save_current_run(pomodoro);
                         processing = false;
                     //if long press down, reset timers
                     }else if(event.input.key == InputKeyDown) {
@@ -228,7 +230,8 @@ int32_t pomodoro_app(void* p) {
                                     pomodoro->endTime = &pomodoro->longBreakTime;
                                 else
                                     pomodoro->endTime = &pomodoro->workTime;
-                            }else if(pomodoro->notification){
+                                //switch to next 
+                            }else{
                                 pomodoro_stop_notification(pomodoro);
                             }
                             break;
@@ -285,13 +288,14 @@ int32_t pomodoro_app(void* p) {
                         pomodoro->notification = true;
                         view_port_update(view_port);
                     }
-                    if(pomodoro->notification)
-                        notification_message(notification, &time_up);
+                    //TURN OF NOTIFICATIONS
+                    //if(pomodoro->notification)
+                        //notification_message(notification, &time_up);
                 }
             }
         }
 
-        release_mutex(&state_mutex, pomodoro);
+        furi_mutex_release(pomodoro->mutex);
     }
 
     // Wait for all notifications to be played and return backlight to normal state
@@ -304,7 +308,7 @@ int32_t pomodoro_app(void* p) {
     furi_record_close(RECORD_NOTIFICATION);
     view_port_free(view_port);
     furi_message_queue_free(event_queue);
-    delete_mutex(&state_mutex);
+    furi_mutex_free(pomodoro->mutex);
     free(pomodoro);
 
     return 0;

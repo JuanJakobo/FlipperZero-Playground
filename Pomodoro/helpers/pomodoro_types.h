@@ -25,4 +25,5 @@ typedef struct {
     PomodoroState state;
     bool running;
     bool notification;
+    FuriMutex* mutex;
 } Pomodoro;
